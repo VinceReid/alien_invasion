@@ -12,6 +12,7 @@ from ship import Ship
 from bullet import Bullet
 from alien import Alien
 from sound_effects import SoundEffects
+from text_blit import TextBlit
 
 
 class AlienInvasion:
@@ -67,10 +68,11 @@ class AlienInvasion:
 
     def game_intro(self):
         """ Game intro for name input and location identified by IP address.""" 
-        intro_screen = self.screen
-        q1 = "What is your name?"
-        font = pygame.font.Font(None, 50)
+        self.intro_screen = self.screen
+        self.intro_screen_rect = self.intro_screen.get_rect()
+
         letter_bullet = ""
+        backspace_pressed = 0
 
         while self.intro:
             for evt in pygame.event.get():
@@ -81,41 +83,50 @@ class AlienInvasion:
                     and len(self.name) != 12):
                         self.name += evt.unicode
                         letter_bullet = Bullet(self)
+                        letter_bullet.color = (0, 255, 0)
 
-                    elif evt.key == pygame.K_BACKSPACE:
+                    elif evt.key == pygame.K_BACKSPACE and backspace_pressed == 0:
+                        backspace_pressed = 1
                         # remove one character if backspace is pressed
-                        self.name = self.name[:-1]
-                        letter_bullet = Bullet(self)
-                        letter_bullet.color = (255, 0, 0)
+                        if backspace_pressed == 1:
+                            letter_bullet = Bullet(self)
+                            letter_bullet.color = (255, 0, 0)
+                            self.name = self.name[:-1]
+                            
+                            if letter_bullet:
+                                letter_bullet.rect.midtop = intro_ship_rect.midtop
+                            while letter_bullet:
+                                if letter_bullet.rect.top >= last_letter_block.rect.bottom:
+                                    letter_bullet.draw_bullet()
+                                    letter_bullet.update()
+                                    pygame.display.flip()
+                                else:
+                                    letter_bullet = ""
+                                    backspace_pressed += 1
+
 
                     elif evt.key == pygame.K_RETURN:
                         entry_message = f"Where on Earth are you {self.name.title()}?!"
-                        intro_screen.fill((0, 0, 0))
-                        block3 = font.render(entry_message, True, (0, 255, 0))
-                        rect3 = block3.get_rect()
-                        rect3.center = intro_screen.get_rect().center
-                        intro_screen.blit(block3, rect3)
+                        self.intro_screen.fill((0, 0, 0))
+                        self.intro_text_2 = TextBlit(self, entry_message, (0, 255, 0))
+                        self.intro_text_2.blit()
                         pygame.display.flip()
                         pygame.time.delay(2000)
 
-                        located = f"Locating {self.name.title()}! . . . ."
-                        entry_message = f"Locating {self.name.title()}!"
-                        while entry_message != located:
-                            intro_screen.fill((0, 0, 0))
-                            locating_block = font.render(entry_message, True, (255, 0, 0))
-                            locating_rect = locating_block.get_rect()
-                            locating_rect.center = intro_screen.get_rect().center
-                            intro_screen.blit(locating_block, locating_rect)
+                        complete_locating_message = f"Locating {self.name.title()}! . . . ."
+                        locating_message = f"Locating {self.name.title()}!"
+                        while locating_message != complete_locating_message:
+                            self.intro_screen.fill((0, 0, 0))
+                            locating_block = TextBlit(self, locating_message, (255, 0, 0))
+                            locating_block.blit()
                             pygame.display.flip()
-                            entry_message += " ."
+                            locating_message += " ."
                             pygame.time.delay(1000)
 
                         located_message = f"{self.name.title()} has been located in {self.country} near {self.city_id}!"
-                        intro_screen.fill((0, 0, 0))
-                        block3 = font.render(located_message, True, (255, 0, 0))
-                        rect3 = block3.get_rect()
-                        rect3.center = intro_screen.get_rect().center
-                        intro_screen.blit(block3, rect3)
+                        self.intro_screen.fill((0, 0, 0))
+                        located = TextBlit(self, located_message,(255, 0, 0))
+                        located.blit()
                         pygame.display.flip()
                         pygame.time.delay(2500)
 
@@ -126,47 +137,48 @@ class AlienInvasion:
                         self.sb = Scoreboard(self)
                         self.sb.prep_name(self.name)
                         self.run_game()
+
+                elif evt.type == pygame.KEYUP:
+                    backspace_pressed = 0
+
+
                 elif evt.type == pygame.QUIT:
                     sys.exit()
 
-                intro_screen.fill((0, 0, 0))
-                block1 = font.render(q1, True, (255, 255, 255))
-                rect1 = block1.get_rect()
-                rect1.center = intro_screen.get_rect().center
-                rect1.y -= rect1.y /4
-                intro_screen.blit(block1, rect1)
+                self.intro_screen.fill((0, 0, 0))
+                intro_text_1 = TextBlit(self, "What is your name?")
+                intro_text_1.rect.y -= intro_text_1.rect.height *2
+                intro_text_1.blit()
 
-                name_block = font.render(self.name, True, (255, 255, 255))
-                name_block_rect = name_block.get_rect()
-                name_block_rect.center = intro_screen.get_rect().center 
-                name_block_rect.y += name_block_rect.y /4
+                name_block = TextBlit(self, self.name)
+                name_block.rect.center = self.intro_screen_rect.center 
+                name_block.rect.y += name_block.rect.y /4
 
                 if self.name:
                     last_letter = self.name[-1]
                 else:
                     last_letter = self.name
-                last_letter_block = font.render(last_letter, True, (255, 255, 255))
-                last_letter_rect = last_letter_block.get_rect()
-                last_letter_rect.right = name_block_rect.right
-                last_letter_rect.bottom = name_block_rect.bottom
+                last_letter_block = TextBlit(self, last_letter)
+                last_letter_block.rect.right = name_block.rect.right
+                last_letter_block.rect.bottom = name_block.rect.bottom
 
                 intro_ship = self.ship
                 intro_ship_rect = intro_ship.rect
-                intro_ship_rect.centerx = last_letter_rect.centerx
-                intro_ship_rect.y = name_block_rect.y + 100
+                intro_ship_rect.centerx = last_letter_block.rect.centerx
+                intro_ship_rect.y = name_block.rect.y + 100
 
-                intro_screen.blit(intro_ship.blackship, intro_ship_rect)
+                self.intro_screen.blit(intro_ship.blackship, intro_ship_rect)
                 if letter_bullet:
                     letter_bullet.rect.midtop = intro_ship_rect.midtop
                 while letter_bullet:
-                    if letter_bullet.rect.top >= name_block_rect.bottom:
+                    if letter_bullet.rect.top >= last_letter_block.rect.bottom:
                         letter_bullet.draw_bullet()
                         letter_bullet.update()
                         pygame.display.flip()
                     else:
                         letter_bullet = ""
 
-                intro_screen.blit(name_block, name_block_rect)
+                name_block.blit()
 
                 pygame.display.flip()
 
