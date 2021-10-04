@@ -71,8 +71,8 @@ class AlienInvasion:
         self.intro_screen = self.screen
         self.intro_screen_rect = self.intro_screen.get_rect()
 
-        font = pygame.font.Font(None, 50)
         letter_bullet = ""
+        backspace_pressed = 0
 
         while self.intro:
             for evt in pygame.event.get():
@@ -83,12 +83,27 @@ class AlienInvasion:
                     and len(self.name) != 12):
                         self.name += evt.unicode
                         letter_bullet = Bullet(self)
+                        letter_bullet.color = (0, 255, 0)
 
-                    elif evt.key == pygame.K_BACKSPACE:
+                    elif evt.key == pygame.K_BACKSPACE and backspace_pressed == 0:
+                        backspace_pressed = 1
                         # remove one character if backspace is pressed
-                        self.name = self.name[:-1]
-                        letter_bullet = Bullet(self)
-                        letter_bullet.color = (255, 0, 0)
+                        if backspace_pressed == 1:
+                            letter_bullet = Bullet(self)
+                            letter_bullet.color = (255, 0, 0)
+                            self.name = self.name[:-1]
+                            
+                            if letter_bullet:
+                                letter_bullet.rect.midtop = intro_ship_rect.midtop
+                            while letter_bullet:
+                                if letter_bullet.rect.top >= last_letter_block.rect.bottom:
+                                    letter_bullet.draw_bullet()
+                                    letter_bullet.update()
+                                    pygame.display.flip()
+                                else:
+                                    letter_bullet = ""
+                                    backspace_pressed += 1
+
 
                     elif evt.key == pygame.K_RETURN:
                         entry_message = f"Where on Earth are you {self.name.title()}?!"
@@ -122,6 +137,11 @@ class AlienInvasion:
                         self.sb = Scoreboard(self)
                         self.sb.prep_name(self.name)
                         self.run_game()
+
+                elif evt.type == pygame.KEYUP:
+                    backspace_pressed = 0
+
+
                 elif evt.type == pygame.QUIT:
                     sys.exit()
 
@@ -151,7 +171,7 @@ class AlienInvasion:
                 if letter_bullet:
                     letter_bullet.rect.midtop = intro_ship_rect.midtop
                 while letter_bullet:
-                    if letter_bullet.rect.top >= name_block.rect.bottom:
+                    if letter_bullet.rect.top >= last_letter_block.rect.bottom:
                         letter_bullet.draw_bullet()
                         letter_bullet.update()
                         pygame.display.flip()
